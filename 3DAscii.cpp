@@ -17,8 +17,7 @@ public:
         this->width = width;
         this->height = height;
         coord.resize(width * height);
-        for (int i = 0; i < size(coord); i++)
-            coord[i] = ' ';
+        clearBuff();
     }
 
     void clearBuff()
@@ -45,11 +44,13 @@ public:
         for (auto vertex : vertices) 
         {
             transvert = transform(vertex, model, view, proj);
-            setNormalized(transvert.x, transvert.y, '*');
+            setNormalized(transvert.x, transvert.y, '#');
         }
 
         for (int y = height-1; y >= 0; y--)
         {
+            std::cout << "\t\t\t\t\t";
+
             for (int x = 0; x < width; x++)
             {
                 std::cout << this->get(x, y);
@@ -57,7 +58,8 @@ public:
             std::cout << std::endl;
         }
     }
-
+    
+    // TODO
     void connect(float xx, float yy, float xxx, float yyy) // ty paolo
     { 
         int x1 = unNorm_x(xx);
@@ -115,14 +117,10 @@ private:
 
 int main()
 {
-
+    // camera position vectors
     glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
     glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
-    float rot = 0.0f;
-
-
 
     // view matrix 
     glm::mat4 view;
@@ -132,7 +130,7 @@ int main()
     glm::mat4 projection;
     projection = glm::perspective(glm::radians(90.0f), 40.0f / 25.0f, 0.1f, 100.0f);
 
-    Screen test = Screen(40, 25);
+    Screen screen = Screen(40, 25);
 
     std::vector<glm::vec3>  vertices = {
         {-0.5f,  0.5f, 0.5f},
@@ -145,19 +143,23 @@ int main()
         {-0.5f, -0.5f, -0.5f}
     };
 
+    float rot = 0.0f;
+
     while (true) {
         // model matrix
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::rotate(model, glm::radians(rot), glm::vec3(0.5f, 0.3f, 0.6f));
-        test.clearBuff();
-        system("cls");
-        test.draw(vertices, model, view, projection);
-        rot += 5.0f;
+
+        screen.clearBuff();
+        std::cout << "\x1b[?25l"; // thank you https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+        std::cout << "\x1b[H"; // this too
+        screen.draw(vertices, model, view, projection);
+        rot += 1.0f;
     }
 
-    //test.connect(0.5, 0.5, 0.5, 0.0);
-    //test.connect(0.5, 0.5, 0.5, 0.0);
-    //test.connect(0.5, 0.0, -0.5, 0.0);
-    //test.connect(-0.5, 0.0, -0.5, 0.5);
+    //screen.connect(0.5, 0.5, 0.5, 0.0);
+    //screen.connect(0.5, 0.5, 0.5, 0.0);
+    //screen.connect(0.5, 0.0, -0.5, 0.0);
+    //screen.connect(-0.5, 0.0, -0.5, 0.5);
 }
 
