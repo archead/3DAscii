@@ -30,14 +30,17 @@ public:
     {
         set((width / 2) + round(x * (width / 2)), (height / 2) + round(y * (height / 2)), val);
     }
-
+    
+    // essentially a vertex shader, although this is all done in software
     glm::vec4 transform(glm::vec3 vertices, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
     {
         glm::vec4 transvert = glm::vec4(vertices, 1.0);
         transvert = proj * view * model * transvert;
         return transvert;
     }
-
+    // main draw function which is techincally also apart of the vertex shader 
+    // takes normalized vector of 3D vertices and applies the transformation matrix to them
+    // then uses the indices vector array to connect them together using connect()
     void draw(std::vector<glm::vec3> vertices, std::vector<int> indices, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
     {
         glm::vec2 prev = transform(vertices[indices[indices.size()-1]], model, view, proj);
@@ -63,7 +66,9 @@ public:
         }
     }
 
-// taken from http://members.chello.at/easyfilter/bresenham.html
+    // taken from http://members.chello.at/easyfilter/bresenham.html
+    // an algorithm to draw a line between two 2D points
+    // takes 2 nomalized xy vertices and unnormalizes them based on our screen resolution defined by height and width
     void connect(float x0f, float y0f, float x1f, float y1f)
     {
         int x0 = unNorm_x(x0f);
@@ -85,9 +90,9 @@ public:
     }
 
 private:
-
-    char background = ' ';
-    char foreground = '*';
+    
+    char background = ' '; // background pixel "color/shape"
+    char foreground = '*'; // foreground pixel "color/shape"
 
     void set(int x, int y, char val)
     {
@@ -98,12 +103,14 @@ private:
     {
         return coord[y * width + x];
     }
-
+    
+    // unormalizes an x coordinate
     int unNorm_x(float x)
     {
         return (width / 2) + round(x * (width / 2));
     }
-
+    
+    // unormalizes a y coordinate
     int unNorm_y(float y)
     {
         return (height / 2) + round(y * (height / 2));
@@ -126,7 +133,8 @@ int main()
     projection = glm::perspective(glm::radians(80.0f), 40.0f / 25.0f, 0.1f, 100.0f);
 
     Screen screen = Screen(40, 25);
-
+    
+    // 3D Vectors of the normalized coordinates of the cube
     std::vector<glm::vec3> vertices = {
         {-0.5f,  0.5f, 0.5f}, // 0
         { 0.5f,  0.5f, 0.5f}, // 1
@@ -137,7 +145,8 @@ int main()
         { 0.5f, -0.5f, -0.5f},// 6
         {-0.5f, -0.5f, -0.5f} // 7
     };
-
+    
+    // essentially a element array buffer (EBO), gives the order of vertices to connect using Screen.connect()
     std::vector<int> indices =
     {
         0, 1, 2, 3,
@@ -150,14 +159,23 @@ int main()
     float rot = 0.0f;
 
     while (true) {
+        
         // model matrix
+        // using rot variable to continuosly rotate the model
+        // this must remain in the draw loop since it needs to be update on every draw call
         glm::mat4 model = glm::mat4(1.0f);
-        //model = glm::rotate(model, glm::radians(20.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         model = glm::rotate(model, glm::radians(rot), glm::vec3(0.2f, .5f, 0.7f));
-
+        
+        // clear the buffer to get ready to draw the next frame
         screen.clearBuff();
+        
+        // an interesting method i found to remove flickering and jumping cursor
+        // simply "presses" the home key and hides cursor with two escape sequences, refer to linked github for more details
         std::cout << "\x1b[?25l" << "\x1b[H"; // thank you https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+        
+        // draw to the screen using our vertices, indicies and matrices
         screen.draw(vertices, indices, model, view, projection);
+        // increment the rotation angle
         rot += 2.5f;
     }
 }
