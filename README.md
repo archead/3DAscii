@@ -3,5 +3,5 @@ A proof of concept 3D renderer built for the terminal
 
 Currently only capable of rendering vertices of a polygon
 
-![demo](https://thumbs.gfycat.com/QuickShabbyCoyote-size_restricted.gif)
+![demo](https://imgur.com/a/s7IIzBs)
 

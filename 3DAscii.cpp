@@ -63,6 +63,7 @@ public:
         }
     }
 
+// taken from http://members.chello.at/easyfilter/bresenham.html
     void connect(float x0f, float y0f, float x1f, float y1f)
     {
         int x0 = unNorm_x(x0f);
