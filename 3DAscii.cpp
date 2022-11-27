@@ -23,7 +23,7 @@ public:
     void clearBuff()
     {
         for (int i = 0; i < size(coord); i++)
-            coord[i] = ' ';
+            coord[i] = background;
     }
 
     void setNormalized(float x, float y, char val) 
@@ -38,14 +38,18 @@ public:
         return transvert;
     }
 
-    void draw(std::vector<glm::vec3> vertices, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
+    void draw(std::vector<glm::vec3> vertices, std::vector<int> indices, glm::mat4 model, glm::mat4 view, glm::mat4 proj)
     {
-        glm::vec4 transvert;
-        for (auto vertex : vertices) 
+        glm::vec2 prev = transform(vertices[indices[indices.size()-1]], model, view, proj);
+
+        for (auto i : indices)
         {
-            transvert = transform(vertex, model, view, proj);
-            setNormalized(transvert.x, transvert.y, '#');
+            glm::vec2 curr = transform(vertices[i], model, view, proj);
+            connect(prev.x, prev.y, curr.x, curr.y);
+            prev = curr;
         }
+
+        std::cout << std::endl;
 
         for (int y = height-1; y >= 0; y--)
         {
@@ -58,41 +62,31 @@ public:
             std::cout << std::endl;
         }
     }
-    
-    // TODO
-    void connect(float xx, float yy, float xxx, float yyy) // ty paolo
-    { 
-        int x1 = unNorm_x(xx);
-        int y1 = unNorm_y(yy);
-        int x2 = unNorm_x(xxx);
-        int y2 = unNorm_y(yyy);
-        int dx = abs(x2 - x1);
-        int dy = abs(y2 - y1);
-        int decide;
-        if (dx > dy)
-            decide = 1;
-        else
-            decide = 0;
-        int pk = 2 * dy - dx;
-        for (int i = 0; i <= dx; i++) {
-            set(x1, y1, '*');
-            x1 < x2 ? x1++ : x1--;
-            if (pk < 0) {
-                if (decide == 0)
-                    pk = pk + 2 * dy;
-                else
-                    pk = pk + 2 * dy;
-            }
-            else {
-                y1 < y2 ? y1++ : y1--;
-                pk = pk + 2 * dy - 2 * dx;
-            }
+
+    void connect(float x0f, float y0f, float x1f, float y1f)
+    {
+        int x0 = unNorm_x(x0f);
+        int y0 = unNorm_y(y0f);
+        int x1 = unNorm_x(x1f);
+        int y1 = unNorm_y(y1f);
+
+        int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        int err = dx + dy, e2; /* error value e_xy */
+
+        for (;;) {  /* loop */
+            set(x0, y0, foreground);
+            if (x0 == x1 && y0 == y1) break;
+            e2 = 2 * err;
+            if (e2 >= dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
+            if (e2 <= dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
         }
     }
 
-
-
 private:
+
+    char background = ' ';
+    char foreground = '*';
 
     void set(int x, int y, char val)
     {
@@ -128,19 +122,28 @@ int main()
 
     // projection matrix
     glm::mat4 projection;
-    projection = glm::perspective(glm::radians(90.0f), 40.0f / 25.0f, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(80.0f), 40.0f / 25.0f, 0.1f, 100.0f);
 
     Screen screen = Screen(40, 25);
 
-    std::vector<glm::vec3>  vertices = {
-        {-0.5f,  0.5f, 0.5f},
-        { 0.5f,  0.5f, 0.5f},
-        { 0.5f, -0.5f, 0.5f},
-        {-0.5f, -0.5f, 0.5f},
-        {-0.5f,  0.5f, -0.5f},
-        { 0.5f,  0.5f, -0.5f},
-        { 0.5f, -0.5f, -0.5f},
-        {-0.5f, -0.5f, -0.5f}
+    std::vector<glm::vec3> vertices = {
+        {-0.5f,  0.5f, 0.5f}, // 0
+        { 0.5f,  0.5f, 0.5f}, // 1
+        { 0.5f, -0.5f, 0.5f}, // 2
+        {-0.5f, -0.5f, 0.5f}, // 3
+        {-0.5f,  0.5f, -0.5f},// 4
+        { 0.5f,  0.5f, -0.5f},// 5
+        { 0.5f, -0.5f, -0.5f},// 6
+        {-0.5f, -0.5f, -0.5f} // 7
+    };
+
+    std::vector<int> indices =
+    {
+        0, 1, 2, 3,
+        0, 4, 5, 1,
+        0, 4, 7, 3, 0,
+        4, 5, 6, 7, 4,
+        5, 1, 2, 6, 7, 4
     };
 
     float rot = 0.0f;
@@ -148,18 +151,13 @@ int main()
     while (true) {
         // model matrix
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, glm::radians(rot), glm::vec3(0.5f, 0.3f, 0.6f));
+        //model = glm::rotate(model, glm::radians(20.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::rotate(model, glm::radians(rot), glm::vec3(0.2f, .5f, 0.7f));
 
         screen.clearBuff();
-        std::cout << "\x1b[?25l"; // thank you https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
-        std::cout << "\x1b[H"; // this too
-        screen.draw(vertices, model, view, projection);
-        rot += 1.0f;
+        std::cout << "\x1b[?25l" << "\x1b[H"; // thank you https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+        screen.draw(vertices, indices, model, view, projection);
+        rot += 2.5f;
     }
-
-    //screen.connect(0.5, 0.5, 0.5, 0.0);
-    //screen.connect(0.5, 0.5, 0.5, 0.0);
-    //screen.connect(0.5, 0.0, -0.5, 0.0);
-    //screen.connect(-0.5, 0.0, -0.5, 0.5);
 }
 
